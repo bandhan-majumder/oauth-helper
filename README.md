@@ -1,6 +1,6 @@
-# OAuthPath
+# OAuth Buddy
 
-OAuthPath helps developers understand the work, waiting time, and handoffs involved in setting up an OAuth app. It includes a small researched guide library and can research an unfamiliar app and save a shareable guide.
+OAuth Buddy helps developers understand the work, waiting time, and handoffs involved in setting up an OAuth app. It includes a small researched guide library and can research an unfamiliar app and save a shareable guide.
 
 ## Local setup
 

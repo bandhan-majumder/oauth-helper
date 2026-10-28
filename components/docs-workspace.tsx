@@ -1,13 +1,12 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, parsePartialJson, type UIMessage } from "ai";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen,
   Check,
-  ChevronDown,
   ChevronRight,
   Command,
   Copy,
@@ -32,11 +31,12 @@ import { assistantAnswerSchema, type AssistantAnswer } from "@/lib/assistant-ans
 import { cn } from "@/lib/utils";
 import type { OAuthGuide } from "@/lib/guide-schema";
 import GuideDocument from "@/components/guide-document";
+import MarkdownContent from "@/components/markdown-content";
 
 const themeStorageKey = "docs-theme:v1";
 type ThemeMode = "system" | "light" | "dark";
 
-type DocsWorkspaceProps = { featuredGuides: OAuthGuide[]; activeGuide?: OAuthGuide | null };
+type DocsWorkspaceProps = { featuredGuides: OAuthGuide[]; savedGeneratedGuides?: OAuthGuide[]; activeGuide?: OAuthGuide | null };
 
 function BrandMark() {
   return (
@@ -46,12 +46,12 @@ function BrandMark() {
   );
 }
 
-function SidebarContent({ guides, activeSlug, onNavigate }: { guides: OAuthGuide[]; activeSlug?: string; onNavigate?: () => void }) {
+function SidebarContent({ guides, generatedGuides, activeSlug, onNavigate }: { guides: OAuthGuide[]; generatedGuides: OAuthGuide[]; activeSlug?: string; onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <Link href="/" onClick={onNavigate} className="flex h-[68px] items-center gap-2.5 border-b border-white/[0.07] px-6">
         <BrandMark />
-        <span className="text-[15px] font-semibold tracking-tight text-zinc-100">OAuth<span className="text-emerald-400">Path</span></span>
+        <span className="text-[15px] font-semibold tracking-tight text-zinc-100">OAuth<span className="text-emerald-400"> Buddy</span></span>
       </Link>
       <nav aria-label="OAuth guide library" className="flex-1 overflow-y-auto px-3 py-6">
         <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.13em] text-zinc-500">Guide library</p>
@@ -59,22 +59,16 @@ function SidebarContent({ guides, activeSlug, onNavigate }: { guides: OAuthGuide
           <li><Link href="/" onClick={onNavigate} className={cn("flex h-9 items-center rounded-md px-3 text-[13px] transition", !activeSlug ? "bg-emerald-400/[0.09] font-medium text-emerald-300" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100")}>Explore apps</Link></li>
           {guides.map((guide) => <li key={guide.slug}><Link href={`/guides/${guide.slug}`} onClick={onNavigate} className={cn("flex h-9 items-center justify-between rounded-md px-3 text-[13px] transition", activeSlug === guide.slug ? "bg-emerald-400/[0.09] font-medium text-emerald-300" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100")}><span>{guide.appName}</span><ChevronRight className="size-3.5 text-zinc-600" /></Link></li>)}
         </ul>
+        {generatedGuides.length > 0 && <div className="mt-6">
+          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.13em] text-zinc-500">Generated guides</p>
+          <ul className="space-y-1">{generatedGuides.map((guide) => <li key={guide.slug}><Link href={`/guides/${guide.slug}`} onClick={onNavigate} className={cn("flex min-h-9 items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] transition", activeSlug === guide.slug ? "bg-emerald-400/[0.09] font-medium text-emerald-300" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100")}><span className="min-w-0 truncate">{guide.appName}</span><ChevronRight className="size-3.5 shrink-0 text-zinc-600" /></Link></li>)}</ul>
+        </div>}
         <div className="mt-8 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5">
           <p className="text-xs font-medium text-zinc-200">Do you need your own OAuth app?</p>
           <p className="mt-2 text-[11px] leading-5 text-zinc-500">Some integration platforms provide managed OAuth apps. A custom app may still be needed for your own branding, scopes, or quota.</p>
           <a href="https://docs.composio.dev/toolkits/managed-auth" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-300">Composio managed OAuth <ChevronRight className="size-3" /></a>
         </div>
       </nav>
-      <div className="border-t border-white/[0.07] p-3">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-white/[0.04]">
-          <div className="flex size-8 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-300">DS</div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-zinc-300">Documentation</p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">Workspace</p>
-          </div>
-          <ChevronDown className="size-4 text-zinc-500" />
-        </button>
-      </div>
     </div>
   );
 }
@@ -105,9 +99,9 @@ function AssistantAnswerView({ answer, guide }: { answer: AssistantAnswer; guide
 
   return (
     <div className="space-y-3">
-      <p className="whitespace-pre-wrap">{answer.answer}</p>
-      {answer.steps.length > 0 && <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Next steps</p><ol className="list-decimal space-y-1 pl-5 text-[13px] leading-5">{answer.steps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol></div>}
-      {answer.caveats.length > 0 && <div className="rounded-lg border border-amber-400/15 bg-amber-400/[0.04] px-3 py-2.5 text-xs leading-5 text-amber-100/80"><p className="mb-1 font-medium text-amber-100">Conditions and caveats</p>{answer.caveats.map((caveat, index) => <p key={`${index}-${caveat}`}>{caveat}</p>)}</div>}
+      <MarkdownContent>{answer.answer}</MarkdownContent>
+      {answer.steps.length > 0 && <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Next steps</p><ol className="list-decimal space-y-1 pl-5 text-[13px] leading-5">{answer.steps.map((step, index) => <li key={`${index}-${step}`}><MarkdownContent>{step}</MarkdownContent></li>)}</ol></div>}
+      {answer.caveats.length > 0 && <div className="rounded-lg border border-amber-400/15 bg-amber-400/[0.04] px-3 py-2.5 text-xs leading-5 text-amber-100/80"><p className="mb-1 font-medium text-amber-100">Conditions and caveats</p>{answer.caveats.map((caveat, index) => <MarkdownContent key={`${index}-${caveat}`}>{caveat}</MarkdownContent>)}</div>}
       {citedSources.length > 0 && <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Guide sources</p><div className="flex flex-wrap gap-2">{citedSources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer" className="rounded-full border border-white/[0.08] px-2.5 py-1 text-[10px] text-emerald-300 hover:bg-white/[0.04]">{source.title}</a>)}</div></div>}
     </div>
   );
@@ -132,7 +126,23 @@ function AssistantThinking() {
   );
 }
 
-export default function DocsWorkspace({ featuredGuides, activeGuide = null }: DocsWorkspaceProps) {
+function StreamingAssistantAnswer({ text }: { text: string }) {
+  const [partialAnswer, setPartialAnswer] = useState("");
+
+  useEffect(() => {
+    let current = true;
+    void parsePartialJson(text).then(({ value }) => {
+      if (!current || !value || typeof value !== "object" || Array.isArray(value) || !("answer" in value)) return;
+      const answer = value.answer;
+      if (typeof answer === "string") setPartialAnswer(answer);
+    });
+    return () => { current = false; };
+  }, [text]);
+
+  return partialAnswer ? <MarkdownContent>{partialAnswer}</MarkdownContent> : <AssistantThinking />;
+}
+
+export default function DocsWorkspace({ featuredGuides, savedGeneratedGuides = [], activeGuide = null }: DocsWorkspaceProps) {
   const router = useRouter();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -324,9 +334,10 @@ export default function DocsWorkspace({ featuredGuides, activeGuide = null }: Do
     void generateGuide();
   }
 
-  const sidebarGuides = activeGuide && !featuredGuides.some((guide) => guide.slug === activeGuide.slug)
-    ? [activeGuide, ...featuredGuides]
-    : featuredGuides;
+  const sidebarGeneratedGuides = [...new Map([
+    ...savedGeneratedGuides,
+    ...(activeGuide?.origin === "generated" ? [activeGuide] : []),
+  ].map((guide) => [guide.slug, guide])).values()];
 
   async function copyMessage(id: string, text: string) {
     try {
@@ -387,7 +398,7 @@ export default function DocsWorkspace({ featuredGuides, activeGuide = null }: Do
   return (
     <div data-theme={resolvedTheme} className="app-shell flex h-dvh w-full overflow-hidden bg-[#080a09] text-zinc-100">
       <aside className="app-sidebar hidden h-full w-[252px] shrink-0 border-r border-white/[0.07] bg-[#0a0c0b] lg:block">
-        <SidebarContent guides={sidebarGuides} activeSlug={activeGuide?.slug} />
+        <SidebarContent guides={featuredGuides} generatedGuides={sidebarGeneratedGuides} activeSlug={activeGuide?.slug} />
       </aside>
 
       {mobileNavOpen && (
@@ -395,7 +406,7 @@ export default function DocsWorkspace({ featuredGuides, activeGuide = null }: Do
           <button className="absolute inset-0 bg-black/65" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />
           <aside className="app-sidebar relative h-full w-[min(84vw,300px)] border-r border-white/10 bg-[#0a0c0b] shadow-2xl">
             <button onClick={() => setMobileNavOpen(false)} aria-label="Close navigation" className="absolute right-3 top-4 z-10 rounded p-2 text-zinc-500 hover:text-zinc-100"><X className="size-4" /></button>
-            <SidebarContent guides={sidebarGuides} activeSlug={activeGuide?.slug} onNavigate={() => setMobileNavOpen(false)} />
+            <SidebarContent guides={featuredGuides} generatedGuides={sidebarGeneratedGuides} activeSlug={activeGuide?.slug} onNavigate={() => setMobileNavOpen(false)} />
           </aside>
         </div>
       )}
@@ -437,8 +448,8 @@ export default function DocsWorkspace({ featuredGuides, activeGuide = null }: Do
               {activeGuide ? <GuideDocument guide={activeGuide} /> : (
                 <div className="mx-auto w-full max-w-[1050px] px-5 py-12 sm:px-9 sm:py-16">
                   <div className="max-w-[760px]">
-                    <p className="text-xs font-medium text-emerald-400">OAuth setup, without the guesswork</p>
-                    <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">Get your OAuth app ready to launch.</h1>
+                    <p className="text-s font-extralight text-emerald-400 italic">OAuth setup, without the guesswork</p>
+                    <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">Get your OAuth app ready to launch.</h1>
                     <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">Find the setup path, approval requirements, and next action for an integration. Start with a guide or research an app that is not in the library.</p>
                     <form onSubmit={(event) => { event.preventDefault(); openGuideSearch(searchQuery); }} className="mt-8 flex flex-col gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.025] p-2 sm:flex-row sm:items-center">
                       <Search className="ml-2 hidden size-4 text-zinc-500 sm:block" />
@@ -449,7 +460,7 @@ export default function DocsWorkspace({ featuredGuides, activeGuide = null }: Do
                   </div>
 
                   <section className="mt-14">
-                    <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-zinc-100">Featured OAuth guides</h2><p className="mt-1 text-xs text-zinc-500">Three different setup and approval paths, checked against provider docs.</p></div><span className="text-[11px] text-zinc-600">3 of 100 planned apps</span></div>
+                    <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-zinc-100">Popular OAuth guides</h2><p className="mt-1 text-xs text-zinc-500">Three different setup and approval paths, checked against provider docs.</p></div></div>
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {featuredGuides.map((guide) => <Link key={guide.slug} href={`/guides/${guide.slug}`} className="group rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 transition hover:border-emerald-400/25 hover:bg-emerald-400/[0.025]">
                         <div className="flex items-center justify-between"><span className="text-xs font-medium text-emerald-300">{guide.appDomain}</span><ChevronRight className="size-4 text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-emerald-300" /></div>
@@ -502,7 +513,7 @@ export default function DocsWorkspace({ featuredGuides, activeGuide = null }: Do
                   <div key={message.id} className={cn("group flex flex-col", isUser ? "items-end" : "items-start")}>
                     <div className={cn("max-w-[90%] whitespace-pre-wrap text-[13px] leading-6", isUser ? "user-message rounded-2xl rounded-br-md bg-white/[0.07] px-4 py-2.5 text-zinc-100" : "w-full text-zinc-300")}>
                       {!isUser && <div className="mb-2 flex items-center gap-2 text-[11px] font-medium text-zinc-500"><Sparkles className="size-3 text-emerald-400" />Assistant</div>}
-                      {isUser ? text : structuredAnswer ? <AssistantAnswerView answer={structuredAnswer} guide={activeGuide} /> : partialAnswer ? busy ? <AssistantThinking /> : <span className="text-xs text-zinc-500">This answer could not be formatted. Please ask again.</span> : text || (busy && message === messages[messages.length - 1] ? <AssistantThinking /> : null)}
+                      {isUser ? text : structuredAnswer ? <AssistantAnswerView answer={structuredAnswer} guide={activeGuide} /> : partialAnswer ? busy ? <StreamingAssistantAnswer key={message.id} text={text} /> : <span className="text-xs text-zinc-500">This answer could not be formatted. Please ask again.</span> : text ? <MarkdownContent>{text}</MarkdownContent> : busy && message === messages[messages.length - 1] ? <AssistantThinking /> : null}
                     </div>
                     {copyText && (
                       <div className="pointer-events-none mt-1 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">

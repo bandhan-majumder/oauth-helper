@@ -55,6 +55,28 @@ export async function searchGuides(query: string) {
   return [...guidesBySlug.values()];
 }
 
+export async function listGeneratedGuides(): Promise<OAuthGuide[]> {
+  if (!process.env.DATABASE_URL) return [];
+  try {
+    const records = await getPrisma().oAuthGuide.findMany({
+      where: { origin: "generated" },
+      orderBy: { createdAt: "desc" },
+      select: { slug: true, content: true },
+    });
+    return records.flatMap((record) => {
+      try {
+        return [parseStoredGuide(record.content)];
+      } catch {
+        console.error(`[generated-guides:sidebar] Skipping invalid saved guide ${record.slug}`);
+        return [];
+      }
+    });
+  } catch {
+    console.error("[generated-guides:sidebar] Could not load saved guides from PostgreSQL.");
+    return [];
+  }
+}
+
 export async function saveGuide(guide: OAuthGuide) {
   await getPrisma().oAuthGuide.create({
     data: {

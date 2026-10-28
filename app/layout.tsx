@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OAuthPath — OAuth setup guides",
+  title: "OAuth Buddy — OAuth setup guides",
   description: "Evidence-backed OAuth app setup guides, approval paths, and next steps.",
 };
 
