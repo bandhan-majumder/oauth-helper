@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #080a09;
+  --foreground: #ededeb;
+  --surface: #0d100e;
+  --muted: #8b918d;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #20c879;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(32, 200, 121, 0.28);
+  color: #fff;
+}
+
+* {
+  scrollbar-color: #303633 transparent;
+  scrollbar-width: thin;
+}
+
+html[data-theme="light"] body {
+  background: #f7f9f7;
+  color: #17211b;
+  color-scheme: light;
+}
+
+html[data-theme="light"] .app-sidebar,
+html[data-theme="light"] .app-header,
+html[data-theme="light"] .app-panel {
+  background: #fff;
+}
+
+html[data-theme="light"] .app-main {
+  background: #f8faf8;
+}
+
+html[data-theme="light"] .app-composer,
+html[data-theme="light"] .app-theme-menu,
+html[data-theme="light"] .app-dialog {
+  background: #fff;
+}
+
+html[data-theme="light"] .user-message {
+  background: #edf2ee;
+}
+
+html[data-theme="light"] [class*="border-white"] {
+  border-color: rgba(20, 36, 26, 0.12) !important;
+}
+
+html[data-theme="light"] [class*="bg-white/"] {
+  background-color: rgba(20, 36, 26, 0.045);
+}
+
+html[data-theme="light"] .text-zinc-100 { color: #17211b !important; }
+html[data-theme="light"] .text-zinc-200 { color: #27352c !important; }
+html[data-theme="light"] .text-zinc-300 { color: #3b4a40 !important; }
+html[data-theme="light"] .text-zinc-400 { color: #56645a !important; }
+html[data-theme="light"] .text-zinc-500 { color: #69776d !important; }
+html[data-theme="light"] .text-zinc-600 { color: #7b887f !important; }
+
+html[data-theme="light"] .app-composer textarea,
+html[data-theme="light"] input {
+  color: #17211b;
+}
+
+html[data-theme="light"] .app-composer textarea::placeholder,
+html[data-theme="light"] input::placeholder {
+  color: #78847b;
+}
+
+html[data-theme="light"] {
+  scrollbar-color: #c5cec7 transparent;
 }
