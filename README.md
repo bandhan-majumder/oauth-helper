@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OAuthPath
 
-## Getting Started
+OAuthPath helps developers understand the work, waiting time, and handoffs involved in setting up an OAuth app. It includes a small researched guide library and can research an unfamiliar app and save a shareable guide.
 
-First, run the development server:
+## Local setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Requirements: Bun, a Gemini API key, and a PostgreSQL database.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Install packages with `bun install`.
+2. Copy `.env.example` to `.env` and set `GEMINI_API_KEY` and `DATABASE_URL` for your PostgreSQL instance. Keep real credentials out of Git.
+3. Apply the Prisma migration: `bun run db:migrate`.
+4. Seed the three researched guide records: `bun run db:seed`.
+5. Start the app with `bun run dev`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For schema changes, update `prisma/schema.prisma`, then run `bun run db:migrate` to create and apply a development migration. Deploy existing migrations with `bun run db:migrate:deploy`. The Prisma client is generated from the schema during install/build workflows; run `bun run db:generate` after schema edits if you need to regenerate it separately.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Product decisions
 
-## Learn More
+- The existing responsive docs-style shell remains, but its navigation and center area now serve an OAuth app directory and guide reader.
+- The first three guides cover GitHub, Slack, and Google Drive. These were selected to show different permission models, distribution choices, and conditional verification requirements.
+- Each guide separates hands-on estimates from external review wait, assigns steps to the agent or developer, tracks local checklist progress, and links to its evidence.
+- Generated guides first check whether official sources document third-party OAuth app registration. If no public path is found or support is unclear, the guide says so, withholds setup and approval estimates, and starts with provider confirmation rather than invented registration steps.
+- The assistant is scoped to OAuth setup and, on a guide page, receives that guide’s steps and sources as context.
+- Unknown apps are researched with Gemini and Google Search grounding, validated against a shared Zod schema, and saved to PostgreSQL via Prisma before a public, unlisted `/guides/[slug]` link is returned.
+- Managed OAuth is called out separately: some integration platforms supply the provider OAuth app, so a developer may not need to register their own unless they need custom scopes, branding, or quota.
 
-To learn more about Next.js, take a look at the following resources:
+## Evidence and limitations
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+GitHub, Slack, and Google Drive guides were checked against official public documentation by parallel research agents on 2026-10-28. They inspected setup documentation and flows but did not create provider apps, sign in, test callbacks, submit a marketplace listing, or request verification; those actions need developer accounts and live application details.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Review times depend on app scopes, audience, distribution, and provider review. The guides mark hands-on durations as estimates and state when a provider publishes no general estimate. Generated guides show returned grounded web sources and mark uncertain details; generated research has not been manually verified by a human.
 
-## Deploy on Vercel
+This is a take-home slice, not the planned 100-app directory. It does not create OAuth apps, store provider credentials, submit approvals, or automate provider dashboard actions. Share links are public to anyone who has the unlisted URL. Checklist progress stays in the visitor’s browser.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Checks
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run `bun run lint` and `bun run build`. In this environment, if Turbopack cannot start its CSS subprocess, run the production check with `bunx next build --webpack`.

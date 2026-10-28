@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Docs workspace",
-  description: "A clean documentation workspace with an AI assistant.",
+  title: "OAuthPath — OAuth setup guides",
+  description: "Evidence-backed OAuth app setup guides, approval paths, and next steps.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

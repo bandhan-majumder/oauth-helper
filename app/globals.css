@@ -21,6 +21,14 @@
   box-sizing: border-box;
 }
 
+.app-composer textarea {
+  background-color: transparent !important;
+}
+
+.app-composer-dock {
+  background-color: #080a09;
+}
+
 html,
 body {
   min-height: 100%;
@@ -63,6 +71,10 @@ html[data-theme="light"] .app-panel {
 
 html[data-theme="light"] .app-main {
   background: #f8faf8;
+}
+
+html[data-theme="light"] .app-composer-dock {
+  background-color: #f8faf8;
 }
 
 html[data-theme="light"] .app-composer,

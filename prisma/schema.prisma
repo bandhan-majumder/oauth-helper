@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model OAuthGuide {
+  slug      String   @id
+  appName   String   @map("app_name")
+  appDomain String   @map("app_domain")
+  origin    String
+  content   Json     @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  checkedAt DateTime @map("checked_at") @db.Timestamptz(6)
+
+  @@index([appName], map: "oauth_guides_app_name_idx")
+  @@index([appDomain], map: "oauth_guides_app_domain_idx")
+  @@map("oauth_guides")
+}
