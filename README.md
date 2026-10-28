@@ -11,6 +11,9 @@ Requires Bun, Gemini API access, and PostgreSQL.
 3. Run `bun run db:migrate` and `bun run db:seed`.
 4. Run `bun run dev`.
 
+For DATABASE_URL, Neon is a quick option. 
+and GEMINI_API_KEY can be generated from Google AI studio.
+
 ## Decisions and limits
 
 - GitHub shows a direct OAuth app path; Slack shows workspace distribution versus Marketplace review; Google Drive shows scope-dependent verification.
